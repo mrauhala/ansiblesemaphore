@@ -1,8 +1,8 @@
 ---
 - hosts: all
-
-- name: Stop firewalld and stop it
-  ansible.builtin.service:
-    name: firewalld
-    state: stopped
-    enabled: yes
+  tasks:
+  - name: Stop firewalld and stop it
+    ansible.builtin.service:
+      name: firewalld
+      state: stopped
+      enabled: yes
