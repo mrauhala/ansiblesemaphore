@@ -33,7 +33,7 @@
       changed_when: false
       when: reboot_required_file.stat.exists
 
-    - name: Debug: Output packages that triggered the reboot
+    - name: Debug Output packages that triggered the reboot
       debug:
         msg: "Packages that triggered the reboot: {{ reboot_packages.stdout_lines }}"
       when: reboot_required_file.stat.exists
