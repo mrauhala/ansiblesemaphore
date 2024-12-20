@@ -59,7 +59,18 @@
         delay: 10
         timeout: 300
       when: reboot_required_file.stat.exists
+      
+    # Step 10: Wait for MicroK8s to be Ready (only if reboot is required)
+    - name: Wait for MicroK8s to be Ready
+      command: microk8s status --wait-ready
+      when: reboot_required_file.stat.exists
 
+    # Step 11: Debug Confirm that MicroK8s is Ready
+    - name: Debug Confirm that MicroK8s is Ready
+      debug:
+        msg: "MicroK8s on {{ inventory_hostname }} is now Ready"
+      when: reboot_required_file.stat.exists
+      
     # Step 10: Uncordon the Kubernetes node (only if reboot is required)
     - name: Uncordon the Kubernetes node
       command: kubectl uncordon {{ inventory_hostname }}
