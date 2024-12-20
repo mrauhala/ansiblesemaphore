@@ -26,17 +26,27 @@
       debug:
         msg: "Current kernel version: {{ current_kernel.stdout }}"
 
-    # Step 4: Get the latest installed kernel version
+    # Step 5: Get the latest installed kernel version
     - name: Get the latest installed kernel version
       shell: "dpkg --list | grep linux-image | awk '{print $2}' | sort | tail -1 | sed 's/linux-image-//g'"
       register: installed_kernel
       changed_when: false
 
-    # Step 5: Check if reboot is required (running kernel is older than installed kernel)
+    # Step 6: Debug: Output the latest installed kernel version
+    - name: Debug installed kernel version
+      debug:
+        msg: "Latest installed kernel version: {{ installed_kernel.stdout }}"
+        
+    # Step 7: Check if reboot is required (running kernel is older than installed kernel)
     - name: Check if reboot is required
       set_fact:
         reboot_required: "{{ current_kernel.stdout != installed_kernel.stdout }}"
 
+    # Step 8: Debug: Output whether reboot is required
+    - name: Debug if reboot is required
+      debug:
+        msg: "Reboot required: {{ reboot_required }}"
+        
     # Step 6: Cordon the Kubernetes node (only if reboot is required)
     - name: Cordon the Kubernetes node
       command: kubectl cordon {{ ansible_hostname }}
