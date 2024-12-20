@@ -40,7 +40,7 @@
 
     # Step 6: Cordon the Kubernetes node (only if reboot is required)
     - name: Cordon the Kubernetes node
-      command: kubectl cordon {{ ansible_hostname }}
+      command: kubectl cordon {{ inventory_hostname }}
       when: reboot_required_file.stat.exists
 
     # Step 7: Drain the Kubernetes node (only if reboot is required)
