@@ -21,6 +21,11 @@
       register: current_kernel
       changed_when: false
 
+    # Step 4: Debug: Output the currently running kernel version
+    - name: Debug current kernel version
+      debug:
+        msg: "Current kernel version: {{ current_kernel.stdout }}"
+
     # Step 4: Get the latest installed kernel version
     - name: Get the latest installed kernel version
       shell: "dpkg --list | grep linux-image | awk '{print $2}' | sort | tail -1 | sed 's/linux-image-//g'"
