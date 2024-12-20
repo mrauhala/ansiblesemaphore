@@ -7,3 +7,11 @@
         name: "{{ ansible_user }}"
         groups: microk8s
         append: yes
+    - name: Install necessary packages
+      apt:
+        name:
+          - nfs-common
+          - btop
+          - ipvsadm
+        state: present
+        update_cache: yes
