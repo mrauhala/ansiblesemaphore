@@ -15,61 +15,52 @@
         autoremove: yes
         autoclean: yes
 
-    # Step 3: Get the currently running kernel version
-    - name: Get the currently running kernel version
-      command: uname -r
-      register: current_kernel
+    # Step 3: Check if /var/run/reboot-required exists
+    - name: Check if a reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required_file
+
+    # Step 4: Debug: Output whether the reboot-required file exists
+    - name: Debug if /var/run/reboot-required exists
+      debug:
+        msg: "Reboot required: {{ reboot_required_file.stat.exists }}"
+
+    # Step 5: List packages that triggered the reboot (only if /var/run/reboot-required exists)
+    - name: Get list of packages that triggered the reboot
+      shell: "cat /var/run/reboot-required.pkgs"
+      register: reboot_packages
       changed_when: false
+      when: reboot_required_file.stat.exists
 
-    # Step 4: Debug: Output the currently running kernel version
-    - name: Debug current kernel version
+    - name: Debug: Output packages that triggered the reboot
       debug:
-        msg: "Current kernel version: {{ current_kernel.stdout }}"
+        msg: "Packages that triggered the reboot: {{ reboot_packages.stdout_lines }}"
+      when: reboot_required_file.stat.exists
 
-    # Step 5: Get the latest installed kernel version
-    - name: Get the latest installed kernel version
-      shell: "dpkg --list | grep linux-image | awk '{print $2}' | sort | tail -1 | sed 's/linux-image-//g'"
-      register: installed_kernel
-      changed_when: false
-
-    # Step 6: Debug: Output the latest installed kernel version
-    - name: Debug installed kernel version
-      debug:
-        msg: "Latest installed kernel version: {{ installed_kernel.stdout }}"
-        
-    # Step 7: Check if reboot is required (running kernel is older than installed kernel)
-    - name: Check if reboot is required
-      set_fact:
-        reboot_required: "{{ current_kernel.stdout != installed_kernel.stdout }}"
-
-    # Step 8: Debug: Output whether reboot is required
-    - name: Debug if reboot is required
-      debug:
-        msg: "Reboot required: {{ reboot_required }}"
-        
     # Step 6: Cordon the Kubernetes node (only if reboot is required)
     - name: Cordon the Kubernetes node
       command: kubectl cordon {{ ansible_hostname }}
-      when: reboot_required | bool
+      when: reboot_required_file.stat.exists
 
     # Step 7: Drain the Kubernetes node (only if reboot is required)
     - name: Drain the Kubernetes node
       command: kubectl drain {{ ansible_hostname }} --ignore-daemonsets --delete-emptydir-data --force
-      when: reboot_required | bool
+      when: reboot_required_file.stat.exists
 
     # Step 8: Reboot the system (only if reboot is required)
     - name: Reboot the system
       reboot:
-      when: reboot_required | bool
+      when: reboot_required_file.stat.exists
 
     # Step 9: Wait for the node to reboot (only if reboot is required)
     - name: Wait for the node to come back online
       wait_for_connection:
         delay: 10
         timeout: 300
-      when: reboot_required | bool
+      when: reboot_required_file.stat.exists
 
     # Step 10: Uncordon the Kubernetes node (only if reboot is required)
     - name: Uncordon the Kubernetes node
       command: kubectl uncordon {{ ansible_hostname }}
-      when: reboot_required | bool
+      when: reboot_required_file.stat.exists
