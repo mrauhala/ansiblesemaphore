@@ -1,0 +1,9 @@
+- name: Prepare MicroK8s on all nodes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Add user to MicroK8s group
+      user:
+        name: "{{ ansible_user }}"
+        groups: microk8s
+        append: yes
