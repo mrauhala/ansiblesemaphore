@@ -45,7 +45,7 @@
 
     # Step 7: Drain the Kubernetes node (only if reboot is required)
     - name: Drain the Kubernetes node
-      command: kubectl drain {{ ansible_hostname }} --ignore-daemonsets --delete-emptydir-data --force
+      command: kubectl drain {{ inventory_hostname }} --ignore-daemonsets --delete-emptydir-data --force
       when: reboot_required_file.stat.exists
 
     # Step 8: Reboot the system (only if reboot is required)
@@ -62,5 +62,5 @@
 
     # Step 10: Uncordon the Kubernetes node (only if reboot is required)
     - name: Uncordon the Kubernetes node
-      command: kubectl uncordon {{ ansible_hostname }}
+      command: kubectl uncordon {{ inventory_hostname }}
       when: reboot_required_file.stat.exists
