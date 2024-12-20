@@ -1,0 +1,60 @@
+---
+- hosts: kubernetes_node
+  become: true
+  serial: 1  # Ensures the playbook runs on one node at a time
+  tasks:
+    # Step 1: Update apt package index
+    - name: Update apt package index
+      apt:
+        update_cache: yes
+
+    # Step 2: Upgrade all packages
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+
+    # Step 3: Get the currently running kernel version
+    - name: Get the currently running kernel version
+      command: uname -r
+      register: current_kernel
+      changed_when: false
+
+    # Step 4: Get the latest installed kernel version
+    - name: Get the latest installed kernel version
+      shell: "dpkg --list | grep linux-image | awk '{print $2}' | sort | tail -1 | sed 's/linux-image-//g'"
+      register: installed_kernel
+      changed_when: false
+
+    # Step 5: Check if reboot is required (running kernel is older than installed kernel)
+    - name: Check if reboot is required
+      set_fact:
+        reboot_required: "{{ current_kernel.stdout != installed_kernel.stdout }}"
+
+    # Step 6: Cordon the Kubernetes node (only if reboot is required)
+    - name: Cordon the Kubernetes node
+      command: kubectl cordon {{ ansible_hostname }}
+      when: reboot_required | bool
+
+    # Step 7: Drain the Kubernetes node (only if reboot is required)
+    - name: Drain the Kubernetes node
+      command: kubectl drain {{ ansible_hostname }} --ignore-daemonsets --delete-emptydir-data --force
+      when: reboot_required | bool
+
+    # Step 8: Reboot the system (only if reboot is required)
+    - name: Reboot the system
+      reboot:
+      when: reboot_required | bool
+
+    # Step 9: Wait for the node to reboot (only if reboot is required)
+    - name: Wait for the node to come back online
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+      when: reboot_required | bool
+
+    # Step 10: Uncordon the Kubernetes node (only if reboot is required)
+    - name: Uncordon the Kubernetes node
+      command: kubectl uncordon {{ ansible_hostname }}
+      when: reboot_required | bool
