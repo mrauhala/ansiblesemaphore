@@ -1,0 +1,33 @@
+- name: Upgrade MicroK8s Nodes Sequentially
+  hosts: all
+  become: yes
+  serial: 1  # Process one node at a time
+  tasks:
+    - name: Check if an update is available for MicroK8s
+      command: snap refresh --list
+      register: refresh_list
+      changed_when: "'microk8s' in refresh_list.stdout"
+
+    - name: Display available updates
+      debug:
+        msg: "{{ refresh_list.stdout }}"
+      when: "'microk8s' in refresh_list.stdout"
+
+    - name: Skip tasks if no update is available
+      meta: end_play
+      when: "'microk8s' not in refresh_list.stdout"
+
+    - name: Cordon the node to prevent scheduling new pods
+      shell: microk8s kubectl cordon {{ inventory_hostname }}
+      environment:
+      register: cordon_status
+
+    - name: Verify the node is cordoned
+      shell: microk8s kubectl get nodes | grep {{ inventory_hostname }}
+      register: node_status
+      failed_when: "'SchedulingDisabled' not in node_status.stdout"
+
+    - name: Drain the node
+      shell: microk8s kubectl drain {{ inventory_hostname }} --ignore-daemonsets --delete-emptydir-data
+      environment:
+
