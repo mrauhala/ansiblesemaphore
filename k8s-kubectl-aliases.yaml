@@ -1,0 +1,33 @@
+---
+- name: Install kubectl aliases for all users
+  hosts: "{{ hostgroup | default('all') }}"
+
+  vars:
+    system_aliases:
+      - { name: kg, command: 'kubectl get' }
+      - { name: kga, command: 'kubectl get all' }
+      - { name: kgi, command: 'kubectl get ingress' }
+      - { name: kgj, command: 'kubectl get jobs' }
+      - { name: kgn, command: 'kubectl get nodes -o wide' }
+      - { name: kgp, command: 'kubectl get pods' }
+      - { name: kgs, command: 'kubectl get services' }
+
+
+  tasks:
+    - name: Create alias file if it doesn't exist
+      copy:
+        dest: /etc/profile.d/aliases.sh
+        content: ""
+        force: no
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Add system-wide aliases
+      lineinfile:
+        path: /etc/profile.d/aliases.sh
+        line: "alias {{ item.name }}='{{ item.command }}'"
+        create: yes
+        state: present
+        insertafter: EOF
+      loop: "{{ system_aliases }}"
