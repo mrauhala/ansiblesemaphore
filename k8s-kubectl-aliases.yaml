@@ -1,6 +1,7 @@
 ---
 - name: Install kubectl aliases for all users
   hosts: "{{ hostgroup | default('all') }}"
+  become: yes
 
   vars:
     system_aliases:
